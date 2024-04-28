@@ -23,3 +23,4 @@ node ffmpeg.video2bookmark.js -i "视频文件（夹）完整路径"
 
 - 分析需要对视频进行解码，受CPU性能影响；
 - 更多参数可执行`node ffmpeg.video2bookmark.js`查看帮助文档
+- 关于这个脚本的记录文章可以查看这里[docs/ffmpeg.video2bookmark.md](docs/ffmpeg.video2bookmark.md)
