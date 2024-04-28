@@ -113,7 +113,7 @@ async function getSceneByFfmpeg(video, tempDir, height = 72, sceneScore = 0.5, m
     let args = [
         '-y', '-hide_banner', '-i', video,
         // '-filter_complex', `select='gt(scene\\,${sceneScore})*eq(pict_type\\,I)',scale=-2:${height},showinfo=checksum=0`,
-        '-filter_complex', `select='(isnan(prev_selected_t)+gte(t-prev_selected_t,${minInterval}))*(gt(scene,${sceneScore})*eq(pict_type,I)+eq(mod(t,${maxInterval}),0))',scale=-2:${height},showinfo=checksum=0`,
+        '-filter_complex', `select='(isnan(prev_selected_t)+gte(t-prev_selected_t,${minInterval}))*(gt(scene,${sceneScore})*eq(pict_type,I)+(gte(t-prev_selected_t,${maxInterval})))',scale=-2:${height},showinfo=checksum=0`,
         '-vsync', 'vfr',//-vsync -fps_mode,使用 -vsync 兼容老版本ffmpeg（4.4）
         `${tempDir}/preview%5d.jpg`
     ];
