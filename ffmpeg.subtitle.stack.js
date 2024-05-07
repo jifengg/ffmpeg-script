@@ -111,7 +111,7 @@ function isVideo(filepath) {
 function getDrawtextFilter(text) {
     //字体为视频高度的百分比
     let fontsizeRatio = maxLineNum + 1;
-    return `drawtext=text='${text}':fontsize=h/${fontsizeRatio}:fontcolor=white:x=(w-tw)/2:y='(h-th)/2':fontfile='${fontfile}':borderw=2:text_align=center+middle`;
+    return `drawtext=text='${text}':fontsize=h/${fontsizeRatio}:fontcolor=white:x=(w-tw)/2:y=(h-th)/2:fontfile='${fontfile}':borderw=2:text_align=center+middle`;
 }
 
 async function getTextLines(textfile) {
