@@ -87,7 +87,7 @@ function tryParseProgress(line) {
 }
 
 function showCmdHelp() {
-    let msg = `${process.argv.slice(0, 2).join(' ')} -i <file|folder> [-temp <folder> ...]
+    let msg = `${process.argv.slice(0, 2).join(' ')} -i <video_file> -t <text_file> -font <font_file> [-o <output> ...]
 -i          <string>    [必须]视频文件路径
 -t          <string>    [必须]文本文件路径。用两个换行符分隔的字幕，支持用一个换行符实现字幕换行
 -o          <string>    生成的图片文件路径，默认：<输入视频文件名>_subtitle.jpg
