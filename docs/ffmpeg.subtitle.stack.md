@@ -48,6 +48,23 @@ ffmpeg支持各种字幕格式文件，不过为了时间精准，也为了避�
 多行文字时，默认两行文字是左对其的，要让其居中对齐，则用`text_align=center+middle`，  
 如果不指定`fontfile`，ffmpeg支持通过`fontconfig`来指定字体的配置，但是配置起来比较麻烦且缺少灵活性，所以还是指定`fontfile`参数，这个需要传递字体文件的完整路径，而且，在windows下，路径需要使用`/`而不能用`\`，如果路径包含空格则需要用单引号包围，例如`fontfile='c:/my fonts/cn/demo.ttf'`。
 
+#### 文本文件格式
+
+为了支持多行字幕，因此采用的文本文件格式如下：
+
+```
+第一行
+first line
+
+第二行
+second line
+
+其它
+others
+```
+
+使用一个空行（\n\n）来分隔两个文本信息，只间隔一个\n的文本会以多行字幕的形式绘制到画面上。
+
 ### 截取指定时间点的画面
 
 使用`trim`过滤器，[官方文档](https://ffmpeg.org/ffmpeg-filters.html#trim)。  
