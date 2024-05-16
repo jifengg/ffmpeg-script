@@ -82,8 +82,9 @@ function showCmdHelp() {
  -duration      <number>    每张图片从出现到消失的时长（秒），默认：20
  -direction     <string>    图片滚动的方向，可选：rl（从右到左，默认），lr（从左到右）
  -margin        <number[|number[|number|number]]>
-                            图片之间的间距，支持的格式：all、vertical|horizontal、top|right|bottom|left
+                            图片之间的间距，支持的格式：all、vertical|horizontal、top|right|bottom|left，默认all=20
 -o              <string>    输出视频的路径，默认为输入目录下的output.mp4
+ -fps           <number>    输出视频的帧率，默认：25
 -y                          是否覆盖已经存在的输出文件，默认：false
 -bgimage        <string>    背景图片的路径，比bgcolor优先，默认：无
  -blursigma     <number>    背景图片虚化的sigma值，为0表示不虚化，默认：15
@@ -207,7 +208,7 @@ async function start(args) {
     let topMargin = 0;
     let rightMargin = 0;
     let bottomMargin = 0;
-    let marginStr = args.margin || '0';
+    let marginStr = args.margin || '20';
     if (/^\d+$/.test(marginStr)) {
         leftMargin = rightMargin = topMargin = bottomMargin = parseNumber(marginStr, 0);
     } else if (/^\d+\|\d+$/.test(marginStr)) {
@@ -223,6 +224,8 @@ async function start(args) {
     } else {
         console.log('margin参数设置无效：“', marginStr, '”，将使用默认值0');
     }
+
+    let fps = parseNumber(args.fps, 25);
 
     let startTime = Date.now();
     console.log('开始处理。');
@@ -246,14 +249,14 @@ async function start(args) {
     filter_complex += `[0:v]${bgimage ? `gblur=sigma=${blursigma},scale=${width}:${height},` : ''}`
         + `${title ? getDrawtextFilter(title, titlefontSize, titlecolor, titlebordercolor, titlefontPath, true) + ',' : ''}`
         + `${footer ? getDrawtextFilter(footer, footerfontSize, footercolor, footerbordercolor, footerfontPath, false) + ',' : ''}`
-        + `fps=25,trim=duration=${duration}[v0];`;
+        + `fps=${fps},trim=duration=${duration}[v0];`;
     let imageHeight = height - footerHeight - titleHeight;
     for (let i = 0; i < images.length; i++) {
         filter_complex += `[${i + 1}:v]scale=-2:${imageHeight}-${topMargin + bottomMargin},`
             + `pad=iw+${leftMargin + rightMargin}:h=ih+${topMargin + bottomMargin}:x=${leftMargin}:y=${topMargin}:color=black@0[v${i + 1}];`;
     }
-    let speed = `((W+w)/25/${duration})`;
-    let xStep = direction == 'rl' ? `W-n*${speed}` : `n*${speed}-w`;
+    let speed = `((W+w)/${duration})`;
+    let xStep = direction == 'rl' ? `W-t*${speed}` : `t*${speed}-w`;
     filter_complex += `${new Array(images.length).fill(0).map((v, i) => `[v${i + 1}]`).join('')}hstack=inputs=${images.length}[fg];`
         + `[v0][fg]overlay=x=${xStep}:y=${titleHeight}`;
     let ffmpeg_args = [
