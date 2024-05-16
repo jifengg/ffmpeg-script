@@ -7,6 +7,8 @@
   - [命令行示例](#命令行示例)
 - [使用视频画面拼接自定义的字幕](#使用视频画面拼接自定义的字幕)
   - [命令行示例](#命令行示例-1)
+- [以水平滚动的方式，展示多张图片](#以水平滚动的方式展示多张图片)
+  - [命令行示例](#命令行示例-2)
 
 ## 运行环境
 
@@ -43,3 +45,20 @@ node ffmpeg.subtitle.stack.js -i "视频文件路径" -t "文本文件路径" -f
 
 - 更多参数可执行`node ffmpeg.subtitle.stack.js -h`查看帮助文档
 - 关于这个脚本的记录文章可以查看这里[docs/ffmpeg.subtitle.stack.md](docs/ffmpeg.subtitle.stack.md)
+
+
+## 以水平滚动的方式，展示多张图片
+
+<details>
+<summary>示例视频</summary>
+<video src="https://github.com/jifengg/ffmpeg-script/assets/17020523/9441cc35-591c-486d-a8f5-d7768ffd5475" controls>你的浏览器不支持播放视频</video>
+</details>
+
+### 命令行示例
+
+```bash
+node ffmpeg.images.rolling.js -i "图片文件夹路径"
+```
+
+- 更多参数可执行`node ffmpeg.images.rolling.js -h`查看帮助文档
+- 关于这个脚本的记录文章可以查看这里[docs/ffmpeg.images.rolling.md](docs/ffmpeg.images.rolling.md)
