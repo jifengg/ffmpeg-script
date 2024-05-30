@@ -148,7 +148,138 @@ function isImage(filepath) {
     return imageFormat.includes(path.extname(filepath).substring(1).toLowerCase());
 }
 
+function getAllMediaFile(dir) {
+    let list = fs.readdirSync(dir, { withFileTypes: true });
+    let rs = [];
+    for (const item of list) {
+        let fullpath = path.join(dir, item.name);
+        if (item.isFile()) {
+            if (isImage(fullpath) || isVideo(fullpath)) {
+                rs.push(fullpath);
+            }
+        } else if (item.isDirectory()) {
+            let sublist = getAllMediaFile(fullpath);
+            rs.push(...sublist);
+        }
+    }
+    return rs;
+}
+
 let debug = false;
+let defaultFontfile = 'c:/Windows/Fonts/msyh.ttc';
+
+async function addWatermark(input, outputfile, args) {
+    let isvideo = isVideo(input);
+    let startTime = Date.now();
+    let cmd = 'ffmpeg';
+    let filter_complex = '';
+
+    let groups = args.__groups;
+    // 水印文件在ffmpeg -i 中的序号
+    let sourceIndex = 1;
+    let sourceinputs = [];
+    let inputFilterName = '[0:v]';
+    let outputFilterIndex = 1;
+    let outputFilterName = inputFilterName;
+    for (let i = 0; i < groups.length; i++) {
+        const group = groups[i];
+        outputFilterName = `[v${outputFilterIndex++}]`;
+        if (group.text) {
+            // 文字。文字直接绘制在源画面上
+            let text = group.text.replace(/\\n/g, '\n');
+            let fontsize = parseNumber(group.fontsize, 20);
+            let fontcolor = group.fontcolor || 'white';
+            let fontfile = path.resolve(group.fontfile || defaultFontfile);
+            if (!fs.existsSync(fontfile)) {
+                console.log('字体文件不存在', fontfile);
+                return;
+            }
+            fontfile = fontfile.replace(/\\/g, '/');
+            filter_complex += `${inputFilterName}drawtext=text='${text}':fontsize=${fontsize}:fontcolor=${fontcolor}:x=(w-tw)/2:y=(h-th)/2:fontfile='${fontfile}':borderw=2:text_align=center+middle${outputFilterName};`;
+            inputFilterName = outputFilterName;
+        } else if (group.file) {
+            // 图片或视频
+            sourceinputs.push('-i', group.file);
+        }
+    }
+
+    let ffmpeg_args = [
+        '-y', '-hide_banner',
+        '-i', input,
+        ...sourceinputs,
+        '-filter_complex', filter_complex,
+        // 输出视频的一些参数，这里只用了质量控制参数 -crf 23，可自行添加如 -c:v libx265 等
+        '-map', outputFilterName,
+        '-crf', '23',
+        outputfile
+    ];
+    if (debug) {
+        console.log(cmd, ffmpeg_args.map(i => i.includes(' ') ? `"${i}"` : i).join(' '));
+    }
+    let output = '';
+    // 输入视频的时长，单位毫秒
+    let duration = null;
+    let offset = 0;
+    let progressPosition = 0;
+    await new Promise((resolve, reject) => {
+        let p = child_process.execFile(cmd, ffmpeg_args, {});
+        p.on('exit', (code) => {
+            if (process.stdin.isTTY) {
+                process.stdout.write('\n');
+            }
+            if (code == 0) {
+                resolve(code);
+            } else {
+                reject(code);
+            }
+        });
+        p.stderr.on('data', (chunk) => {
+            output += chunk + '';
+            while (true) {
+                let index = output.indexOf('\n', offset);
+                let index2 = output.indexOf('\r', offset);
+                if (index == -1 && index2 == -1) {
+                    break;
+                }
+                if (index == -1) {
+                    index = Number.MAX_SAFE_INTEGER;
+                }
+                if (index2 == -1) {
+                    index2 = Number.MAX_SAFE_INTEGER;
+                }
+                index = Math.min(index, index2);
+                let line = output.substring(offset, index);
+                offset = index + 1;
+                duration = duration || tryParseDuration(line);
+                let progress = tryParseProgress(line);
+                if (progress != null) {
+                    progressPosition = progress.time;
+                } else {
+                    continue;
+                }
+                if (isNaN(progressPosition)) {
+                    continue;
+                }
+                let progressStr = duration != null && progressPosition != 0 ? `处理进度：${(progressPosition / 1000).toFixed(2).padStart(7, ' ')} 秒（${(progressPosition / duration * 100).toFixed(2).padStart(5, ' ')}%）` : '';
+                let msg = progressStr;
+                if (!process.stdin.isTTY) {
+                    console.log(msg);
+                } else {
+                    process.stdout.write('\r' + msg);
+                }
+            }
+            if (debug) {
+                if (!process.stdin.isTTY) {
+                    console.log(chunk + '');
+                } else {
+                    process.stdout.write(chunk);
+                }
+            }
+        });
+    });
+    let processTime = Date.now() - startTime;
+    console.log('处理完毕。耗时：', processTime / 1000, '秒');
+}
 
 async function start(args) {
     if (args == null) {
@@ -163,19 +294,35 @@ async function start(args) {
         console.log('输入文件（夹）不存在', input);
         return;
     }
-    let inputStat = fs.statSync(input);
-    if(inputStat.isDirectory()){
-        
-    }
     let overwrite = !!args.y;
-    let output = args.o || path.join(path.dirname(input), path.basename(input, path.extname(input)) + '_subtitle.jpg');
-    if (!overwrite && fs.existsSync(output)) {
-        console.log('输出文件已存在，跳过', output);
-        return;
-    }
     debug = !!args.debug;
-
-    console.log('输入参数：', JSON.stringify(args));
+    let inputStat = fs.statSync(input);
+    // 不管单个文件还是目录，均当成文件列表来处理
+    let filelist = [];
+    if (inputStat.isDirectory()) {
+        filelist = getAllMediaFile(input);
+    } else {
+        filelist = [input];
+    }
+    console.log('开始处理。');
+    console.log(
+        `输入文件（夹）：${input}
+待处理文件数量：${filelist.length}`);
+    // 遍历文件列表
+    for (let i = 0; i < filelist.length; i++) {
+        let inputfile = filelist[i];
+        let output = args.o || path.dirname(inputfile);
+        if (fs.statSync(output).isDirectory()) {
+            output = path.join(output, path.basename(inputfile, path.extname(inputfile)) + '_watermark' + path.extname(inputfile));
+        }
+        if (!overwrite && fs.existsSync(output)) {
+            console.log('输出文件已存在，跳过', output);
+            continue;
+        }
+        fs.mkdirSync(path.dirname(output), { recursive: true });
+        await addWatermark(inputfile, output, args);
+    }
+    console.log('全部处理完成。即将退出脚本。');
 }
 
 module.exports = { start }
