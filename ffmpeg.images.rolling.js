@@ -129,7 +129,7 @@ function getAllImageFile(dir) {
                 rs.push(fullpath);
             }
         } else if (item.isDirectory()) {
-            let sublist = getAllVideoFile(fullpath);
+            let sublist = getAllImageFile(fullpath);
             rs.push(...sublist);
         }
     }
