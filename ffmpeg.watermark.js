@@ -8,7 +8,7 @@ let boolArgsKey = [
 ]
 
 let groupArgsKey = [
-    'size', 'color', 'alpha', 'width', 'height'
+    'fontsize', 'fontcolor', 'fontfile', 'fontborderwidth', 'fontbordercolor', 'alpha', 'width', 'height', 'left', 'top', 'right', 'bottom',
 ];
 let groupArgsEndKey = ['text', 'file'];
 
@@ -184,18 +184,35 @@ async function addWatermark(input, outputfile, args) {
     for (let i = 0; i < groups.length; i++) {
         const group = groups[i];
         outputFilterName = `[v${outputFilterIndex++}]`;
+        let left = parseNumber(group.left, null);
+        let top = parseNumber(group.top, null);
+        let right = parseNumber(group.right, null);
+        let bottom = parseNumber(group.bottom, null);
+        if (left == null && right == null) {
+            right = 20;
+        }
+        if (top == null && bottom == null) {
+            top = 20;
+        }
+        let alpha = parseNumber(group.alpha, 1);
         if (group.text) {
             // 文字。文字直接绘制在源画面上
             let text = group.text.replace(/\\n/g, '\n');
             let fontsize = parseNumber(group.fontsize, 20);
             let fontcolor = group.fontcolor || 'white';
             let fontfile = path.resolve(group.fontfile || defaultFontfile);
+            let fontBorderWidth = parseNumber(group.fontborderwidth, 0);
+            let fontBorderColor = group.fontbordercolor || 'black';
             if (!fs.existsSync(fontfile)) {
                 console.log('字体文件不存在', fontfile);
                 return;
             }
             fontfile = fontfile.replace(/\\/g, '/');
-            filter_complex += `${inputFilterName}drawtext=text='${text}':fontsize=${fontsize}:fontcolor=${fontcolor}:x=(w-tw)/2:y=(h-th)/2:fontfile='${fontfile}':borderw=2:text_align=center+middle${outputFilterName};`;
+            filter_complex += `${inputFilterName}drawtext=text='${text}':fontsize=${fontsize}:fontcolor=${fontcolor}@${alpha}:`
+                + `x=${right == null ? (left > 1 ? left : `(w-tw)*${left}`) : (right > 1 ? `w-tw-${right}` : `(w-tw)*${1 - right}`)}:`
+                + `y=${bottom == null ? (top > 1 ? top : `(h-th)*${top}`) : (bottom > 1 ? `h-th-${bottom}` : `(h-th)*${1 - bottom}`)}:`
+                + `fontfile='${fontfile}':`
+                + `borderw=${fontBorderWidth}:bordercolor=${fontBorderColor}@${alpha}:text_align=center+middle${outputFilterName};`;
             inputFilterName = outputFilterName;
         } else if (group.file) {
             // 图片或视频
