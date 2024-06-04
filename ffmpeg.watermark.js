@@ -85,8 +85,8 @@ function loadPreset(filepath) {
         throw `预设置文件不存在：${filepath}`;
     }
     let lines = fs.readFileSync(filepath).toString().replace(/\r/g, '').split('\n');
-    // 移除lines中的空白行，并去除每行前后的空格
-    lines = lines.filter(line => line.trim().length > 0).map(line => line.trim());
+    // 移除lines中的空白行，并去除每行前后的空格。#开头的为注释行，也忽略
+    lines = lines.filter(line => line.trim().length > 0 && !line.startsWith('#') && !line.startsWith('//')).map(line => line.trim());
     return lines;
 }
 
