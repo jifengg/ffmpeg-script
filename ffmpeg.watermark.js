@@ -4,13 +4,15 @@ const path = require('path');
 const child_process = require('child_process');
 
 let boolArgsKey = [
-    'y', 'h', 'v', 'debug',
+    'y', 'h', 'v', 'debug', 'repeat',
 ]
 
 let groupArgsKey = [
-    'fontsize', 'fontcolor', 'fontfile', 'fontborderwidth', 'fontbordercolor', 'alpha',
-    'width', 'height', 'left', 'top', 'right', 'bottom',
-    'xspeed', 'yspeed', 'interval', 'seed',
+    'fontsize', 'fontcolor', 'fontfile', 'fontborderwidth', 'fontbordercolor',
+    'alpha', 'left', 'top', 'right', 'bottom',
+    'move', 'xspeed', 'yspeed', 'interval', 'seed',
+    'repeat', 'boxw', 'boxh', 'rotate',
+    'scale',
 ];
 let groupArgsEndKey = ['text', 'file'];
 
@@ -167,6 +169,17 @@ function getAllMediaFile(dir) {
     return rs;
 }
 
+function getRepeatFilter(boxw, boxh, rotate, inputFilterName, sourceIndex) {
+    let colNum = Math.max(2, Math.ceil(8000 / boxw));
+    let rowNum = Math.max(2, Math.ceil(6000 / boxh));
+    let colOutput = new Array(colNum).fill(0).map((v, i) => `[col_${sourceIndex}_${i}]`).join('');
+    let rowOutput = new Array(rowNum).fill(0).map((v, i) => `[row_${sourceIndex}_${i}]`).join('');
+    return `split=${colNum}${colOutput};`
+        + `${colOutput}hstack=inputs=${colNum},split=${rowNum}${rowOutput};`
+        + `${rowOutput}vstack=inputs=${rowNum},rotate=${rotate}*PI/180:fillcolor=black@0[overlay_${sourceIndex}];`
+        + `${inputFilterName}[overlay_${sourceIndex}]overlay=(W-w)/2:(H-h)/2`;
+}
+
 let debug = false;
 let defaultFontfile = 'c:/Windows/Fonts/msyh.ttc';
 
@@ -200,28 +213,21 @@ async function addWatermark(input, outputfile, args) {
             top = 20;
         }
         let alpha = parseNumber(group.alpha, 1);
-        let moveType = args.move || null;
+        let moveType = group.move || null;
         // 如果不是视频则不需要移动
         if (!isvideo) {
             moveType = null;
         }
-        if (group.text) {
-            // 文字。文字直接绘制在源画面上
-            let text = group.text.replace(/\\n/g, '\n');
-            let fontsize = parseNumber(group.fontsize, 20);
-            let fontcolor = group.fontcolor || 'white';
-            let fontfile = path.resolve(group.fontfile || defaultFontfile);
-            let fontBorderWidth = parseNumber(group.fontborderwidth, 0);
-            let fontBorderColor = group.fontbordercolor || 'black';
-            if (!fs.existsSync(fontfile)) {
-                console.error('字体文件不存在', fontfile);
-                return;
-            }
-            fontfile = fontfile.replace(/\\/g, '/');
-            let xMax = 'w-tw';
-            let yMax = 'h-th';
-            let xexp = '';
-            let yexp = '';
+        let xMax = group.text ? 'w-tw' : 'W-w';
+        let yMax = group.text ? 'h-th' : 'H-h';
+        let xexp = '';
+        let yexp = '';
+        let repeat = !!group.repeat;
+        // 如果需要重复填充，则认为是不需要移动的
+        if (repeat) {
+            xexp = `(${xMax})/2`;
+            yexp = `(${yMax})/2`;
+        } else {
             switch (moveType) {
                 case moveType_DVD:
                     let xspeed = parseNumber(group.xspeed, 400);
@@ -249,15 +255,70 @@ async function addWatermark(input, outputfile, args) {
                     yexp = bottom == null ? (top > 1 ? top : `(${yMax})*${top}`) : (bottom > 1 ? `${yMax}-${bottom}` : `(${yMax})*${1 - bottom}`);
                     break;
             }
-            filter_complex += `${inputFilterName}drawtext=text='${text}':fontsize=${fontsize}:fontcolor=${fontcolor}@${alpha}:`
+        }
+        let boxw = parseNumber(group.boxw, 200);
+        let boxh = parseNumber(group.boxh, 100);
+        let rotate = parseNumber(group.rotate, 0);
+        if (group.text) {
+            // 文字。文字直接绘制在源画面上
+            let text = group.text.replace(/\\n/g, '\n');
+            let fontsize = parseNumber(group.fontsize, 20);
+            let fontcolor = group.fontcolor || 'white';
+            let fontfile = path.resolve(group.fontfile || defaultFontfile);
+            let fontBorderWidth = parseNumber(group.fontborderwidth, 0);
+            let fontBorderColor = group.fontbordercolor || 'black';
+            if (!fs.existsSync(fontfile)) {
+                console.error('字体文件不存在', fontfile);
+                return;
+            }
+            fontfile = fontfile.replace(/\\/g, '/');
+            let drawtextFilter = `drawtext=text='${text}':fontsize=${fontsize}:fontcolor=${fontcolor}@${alpha}:`
                 + `x='${xexp}':`
                 + `y='${yexp}':`
                 + `fontfile='${fontfile}':`
-                + `borderw=${fontBorderWidth}:bordercolor=${fontBorderColor}@${alpha}:text_align=center+middle${outputFilterName};`;
+                + `borderw=${fontBorderWidth}:bordercolor=${fontBorderColor}@${alpha}:text_align=center+middle`;
+            if (repeat) {
+                // 要重复填充，文本需要一个空白的画布，而不是在画面上直接写。
+                sourceinputs.push(...`-f lavfi -r 1 -t 1 -i color=s=${boxw}x${boxh}`.split(' '));
+                filter_complex += `[${sourceIndex}:v]format=argb,colorchannelmixer=aa=0,${drawtextFilter},`
+                    + getRepeatFilter(boxw, boxh, rotate, inputFilterName, sourceIndex)
+                    + `${outputFilterName};`;
+                sourceIndex++;
+            } else {
+                filter_complex += `${inputFilterName}${drawtextFilter}${outputFilterName};`;
+            }
             inputFilterName = outputFilterName;
         } else if (group.file) {
+            let file = group.file;
+            if (!fs.existsSync(file)) {
+                console.error('-file 文件不存在', file);
+                return;
+            }
             // 图片或视频
-            sourceinputs.push('-i', group.file);
+            sourceinputs.push('-i', file);
+            let scale = group.scale;
+            let sourceFilterName = `[${sourceIndex}:v]`;
+            if (scale || alpha != 1) {
+                let filterName = `[v_p_${sourceIndex}]`;
+                let preProcessArr = [];
+                if (scale) {
+                    preProcessArr.push(`scale=${scale}`);
+                }
+                if (alpha != 1) {
+                    preProcessArr.push(`format=argb,colorchannelmixer=aa=${alpha}`);
+                }
+                filter_complex += `${sourceFilterName}${preProcessArr.join(',')}${filterName};`;
+                sourceFilterName = filterName;
+            }
+            if (repeat) {
+                filter_complex += `${sourceFilterName}pad=${boxw}:${boxh}:(ow-iw)/2:(oh-ih)/2:color=black@0,`
+                    + getRepeatFilter(boxw, boxh, rotate, inputFilterName, sourceIndex)
+                    + `${outputFilterName};`;
+            } else {
+                filter_complex += `${inputFilterName}${sourceFilterName}overlay=x='${xexp}':y='${yexp}'${outputFilterName};`;
+            }
+            inputFilterName = outputFilterName;
+            sourceIndex++;
         }
     }
 
@@ -271,7 +332,7 @@ async function addWatermark(input, outputfile, args) {
         '-filter_complex', filter_complex,
         // 输出视频的一些参数，这里只用了质量控制参数 -crf 23，可自行添加如 -c:v libx265 等
         '-map', outputFilterName,
-        '-crf', crf,
+        ...(isvideo ? ['-shortest', '-crf', crf,] : ['-frames:v', '1']),
         ...(fps != null ? ['-r', fps] : []),
         outputfile
     ];
@@ -374,7 +435,7 @@ async function start(args) {
     for (let i = 0; i < filelist.length; i++) {
         let inputfile = filelist[i];
         let output = args.o || path.dirname(inputfile);
-        if (fs.statSync(output).isDirectory()) {
+        if (fs.existsSync(output) && fs.statSync(output).isDirectory()) {
             output = path.join(output, path.basename(inputfile, path.extname(inputfile)) + '_watermark' + path.extname(inputfile));
         }
         if (!overwrite && fs.existsSync(output)) {
