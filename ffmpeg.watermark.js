@@ -8,7 +8,9 @@ let boolArgsKey = [
 ]
 
 let groupArgsKey = [
-    'fontsize', 'fontcolor', 'fontfile', 'fontborderwidth', 'fontbordercolor', 'alpha', 'width', 'height', 'left', 'top', 'right', 'bottom',
+    'fontsize', 'fontcolor', 'fontfile', 'fontborderwidth', 'fontbordercolor', 'alpha',
+    'width', 'height', 'left', 'top', 'right', 'bottom',
+    'xspeed', 'yspeed', 'interval', 'seed',
 ];
 let groupArgsEndKey = ['text', 'file'];
 
@@ -168,6 +170,9 @@ function getAllMediaFile(dir) {
 let debug = false;
 let defaultFontfile = 'c:/Windows/Fonts/msyh.ttc';
 
+let moveType_DVD = 'dvd';
+let moveType_RANDOM = 'random';
+
 async function addWatermark(input, outputfile, args) {
     let isvideo = isVideo(input);
     let startTime = Date.now();
@@ -195,6 +200,11 @@ async function addWatermark(input, outputfile, args) {
             top = 20;
         }
         let alpha = parseNumber(group.alpha, 1);
+        let moveType = args.move || null;
+        // 如果不是视频则不需要移动
+        if (!isvideo) {
+            moveType = null;
+        }
         if (group.text) {
             // 文字。文字直接绘制在源画面上
             let text = group.text.replace(/\\n/g, '\n');
@@ -204,13 +214,44 @@ async function addWatermark(input, outputfile, args) {
             let fontBorderWidth = parseNumber(group.fontborderwidth, 0);
             let fontBorderColor = group.fontbordercolor || 'black';
             if (!fs.existsSync(fontfile)) {
-                console.log('字体文件不存在', fontfile);
+                console.error('字体文件不存在', fontfile);
                 return;
             }
             fontfile = fontfile.replace(/\\/g, '/');
+            let xMax = 'w-tw';
+            let yMax = 'h-th';
+            let xexp = '';
+            let yexp = '';
+            switch (moveType) {
+                case moveType_DVD:
+                    let xspeed = parseNumber(group.xspeed, 400);
+                    let yspeed = parseNumber(group.yspeed, 300);
+                    xexp = `abs(mod(t*${xspeed}+(${xMax}),(${xMax})*2)-(${xMax}))`;
+                    yexp = `abs(mod(t*${yspeed}+(${yMax}),(${yMax})*2)-(${yMax}))`;
+                    break;
+                case moveType_RANDOM:
+                    // 变化间隔，单位秒
+                    let interval = parseNumber(group.interval, 10);
+                    let seed = parseNumber(group.seed, Math.random() * 9e4 + 1e4);
+                    // t是时间，将它除以变化间隔后取整则可以保证在变化间隔内计算式都是同样的值，看起来就是间隔内没有移动。
+                    // 随机移动采用一个取巧的方式。因为ffmpeg的random函数需要设置seed，相同的seed出来的随机数是一样的，但是在计算式之间没法共享seed。
+                    // 因此，x轴使用平方函数，且基数较大，这样在相差1的时候平方值也会有较大的幅度。
+                    // y轴使用一个正弦函数，并随机一个初始弧度。x，y
+                    // xexp = `abs(mod(floor(t/${interval})*${seed}+(${xMax}),(${xMax})*2)-(${xMax}))`;
+                    // yexp = `abs(mod(floor(t/${interval})*${seedy}+(${yMax}),(${yMax})*2)-(${yMax}))`;
+                    xexp = `mod(pow(${seed}+floor(t/${interval}),2),(${xMax}))`;
+                    // yexp = `mod(pow(${seedy}+floor(t/${interval}),2),(${yMax}))`;
+                    // xexp = `(sin(floor(t/${interval})*${seedx})+1)/2*(${xMax})`;
+                    yexp = `(sin(floor(t/${interval})+${seed})+1)/2*(${yMax})`;
+                    break;
+                default:
+                    xexp = right == null ? (left > 1 ? left : `(${xMax})*${left}`) : (right > 1 ? `${xMax}-${right}` : `(${xMax})*${1 - right}`);
+                    yexp = bottom == null ? (top > 1 ? top : `(${yMax})*${top}`) : (bottom > 1 ? `${yMax}-${bottom}` : `(${yMax})*${1 - bottom}`);
+                    break;
+            }
             filter_complex += `${inputFilterName}drawtext=text='${text}':fontsize=${fontsize}:fontcolor=${fontcolor}@${alpha}:`
-                + `x=${right == null ? (left > 1 ? left : `(w-tw)*${left}`) : (right > 1 ? `w-tw-${right}` : `(w-tw)*${1 - right}`)}:`
-                + `y=${bottom == null ? (top > 1 ? top : `(h-th)*${top}`) : (bottom > 1 ? `h-th-${bottom}` : `(h-th)*${1 - bottom}`)}:`
+                + `x='${xexp}':`
+                + `y='${yexp}':`
                 + `fontfile='${fontfile}':`
                 + `borderw=${fontBorderWidth}:bordercolor=${fontBorderColor}@${alpha}:text_align=center+middle${outputFilterName};`;
             inputFilterName = outputFilterName;
@@ -220,6 +261,9 @@ async function addWatermark(input, outputfile, args) {
         }
     }
 
+    let crf = parseNumber(args.crf, 23);
+    let fps = parseNumber(args.fps, null);
+
     let ffmpeg_args = [
         '-y', '-hide_banner',
         '-i', input,
@@ -227,11 +271,12 @@ async function addWatermark(input, outputfile, args) {
         '-filter_complex', filter_complex,
         // 输出视频的一些参数，这里只用了质量控制参数 -crf 23，可自行添加如 -c:v libx265 等
         '-map', outputFilterName,
-        '-crf', '23',
+        '-crf', crf,
+        ...(fps != null ? ['-r', fps] : []),
         outputfile
     ];
     if (debug) {
-        console.log(cmd, ffmpeg_args.map(i => i.includes(' ') ? `"${i}"` : i).join(' '));
+        console.log(cmd, ffmpeg_args.map(i => i.toString().includes(' ') ? `"${i}"` : i).join(' '));
     }
     let output = '';
     // 输入视频的时长，单位毫秒
