@@ -33,7 +33,8 @@ function parseArgs(args) {
     let key = null;
     for (let i = 0; i < args.length; i++) {
         let v = args[i];
-        if (v.startsWith('-')) {
+        // 兼容传负数值类似  -2 或 -1:100 等情况，减号后面跟着数字则认为是“值”而不是“key”
+        if (v.startsWith('-') && (v.length > 1 && isNaN(Number(v[1])))) {
             key = v.substring(1);
             if (groupArgsKeyAll.includes(key)) {
                 // 是组的key
