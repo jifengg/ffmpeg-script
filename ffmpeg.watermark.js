@@ -66,6 +66,10 @@ function parseArgs(args) {
                     }
                 } else {
                     rs[key] = v;
+                    if (key == 'preset') {
+                        let params = loadPreset(v);
+                        args.splice(i + 1, 0, ...params);
+                    }
                 }
                 key = null;
             } else {
@@ -74,6 +78,16 @@ function parseArgs(args) {
         }
     }
     return rs;
+}
+
+function loadPreset(filepath) {
+    if (!fs.existsSync(filepath)) {
+        throw `预设置文件不存在：${filepath}`;
+    }
+    let lines = fs.readFileSync(filepath).toString().replace(/\r/g, '').split('\n');
+    // 移除lines中的空白行，并去除每行前后的空格
+    lines = lines.filter(line => line.trim().length > 0).map(line => line.trim());
+    return lines;
 }
 
 function parseNumber(str, defaultValue) {
@@ -450,6 +464,13 @@ async function start(args) {
 }
 
 module.exports = { start }
+
+process.on('uncaughtException', (err) => {
+    console.error(err);
+});
+process.on('unhandledRejection', (err) => {
+    console.error(err);
+});
 
 // test();
 if (process.argv[1] == __filename) {
