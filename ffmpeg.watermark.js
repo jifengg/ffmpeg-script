@@ -80,8 +80,22 @@ function parseArgs(args) {
     return rs;
 }
 
-function loadPreset(filepath) {
+function loadPreset(filepath = '') {
+    let exist = true;
     if (!fs.existsSync(filepath)) {
+        // 如果路径不含文件路径分隔符，则尝试在指定目录中查找
+        if (!path.normalize(filepath).includes(path.sep)) {
+            filepath = path.join('preset', filepath);
+            // 再加上后缀试试
+            if (!fs.existsSync(filepath)) {
+                filepath = `${filepath}.preset`;
+                exist = fs.existsSync(filepath);
+            }
+        } else {
+            exist = false;
+        }
+    }
+    if (!exist) {
         throw `预设置文件不存在：${filepath}`;
     }
     let lines = fs.readFileSync(filepath).toString().replace(/\r/g, '').split('\n');
