@@ -10,7 +10,7 @@ let boolArgsKey = [
 let groupArgsKey = [
     'fontsize', 'fontcolor', 'fontfile', 'fontborderwidth', 'fontbordercolor',
     'alpha', 'left', 'top', 'right', 'bottom',
-    'move', 'xspeed', 'yspeed', 'interval', 'seed',
+    'move', 'xspeed', 'yspeed', 'interval', 'seed', 'xstart', 'ystart',
     'repeat', 'boxw', 'boxh', 'rotate',
     'scale',
 ];
@@ -261,8 +261,10 @@ async function addWatermark(input, outputfile, args) {
                 case moveType_DVD:
                     let xspeed = parseNumber(group.xspeed, 400);
                     let yspeed = parseNumber(group.yspeed, 300);
-                    xexp = `abs(mod(t*${xspeed}+(${xMax}),(${xMax})*2)-(${xMax}))`;
-                    yexp = `abs(mod(t*${yspeed}+(${yMax}),(${yMax})*2)-(${yMax}))`;
+                    let xstart = parseNumber(group.xstart, 0);
+                    let ystart = parseNumber(group.ystart, 0);
+                    xexp = `abs(mod(t*${xspeed}+(${xMax})+${xstart},(${xMax})*2)-(${xMax}))`;
+                    yexp = `abs(mod(t*${yspeed}+(${yMax})+${ystart},(${yMax})*2)-(${yMax}))`;
                     break;
                 case moveType_RANDOM:
                     // 变化间隔，单位秒
