@@ -22,3 +22,6 @@ selenium-debug.log
 package-lock.json
 yarn.lock
 temp/
+debug/
+test/
+testfile/

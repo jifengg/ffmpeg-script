@@ -9,6 +9,8 @@
   - [命令行示例](#命令行示例-1)
 - [以水平滚动的方式，展示多张图片](#以水平滚动的方式展示多张图片)
   - [命令行示例](#命令行示例-2)
+- [为图片或视频添加自定义的水印，具有动态水印等多种高级功能。](#为图片或视频添加自定义的水印具有动态水印等多种高级功能)
+  - [命令行示例](#命令行示例-3)
 
 ## 运行环境
 
@@ -62,3 +64,36 @@ node ffmpeg.images.rolling.js -i "图片文件夹路径"
 
 - 更多参数可执行`node ffmpeg.images.rolling.js -h`查看帮助文档
 - 关于这个脚本的记录文章可以查看这里[docs/ffmpeg.images.rolling.md](docs/ffmpeg.images.rolling.md)
+
+
+## 为图片或视频添加自定义的水印，具有动态水印等多种高级功能。
+
+
+<details>
+<summary>模拟DVD待机画面</summary>
+<video src="https://github.com/jifengg/ffmpeg-script/assets/17020523/02c00806-2514-4dc8-9bdf-df53f66f9931" controls>你的浏览器不支持播放视频</video>
+</details>
+
+----
+
+<details>
+<summary>每1秒随机变换水印位置</summary>
+<video src="https://github.com/jifengg/ffmpeg-script/assets/17020523/b5ba5de5-ca52-417e-a0b3-dbf43bf6bff4" controls>你的浏览器不支持播放视频</video>
+</details>
+
+----
+
+身份证添加水印：
+
+![idcard_watermark](https://github.com/jifengg/ffmpeg-script/assets/17020523/7e8dff92-feec-40e3-978f-54df1fabdad5)
+
+
+### 命令行示例
+
+```bash
+node ffmpeg.watermark.js -i "图片文件夹路径"
+```
+
+- 更多参数可执行`node ffmpeg.watermark.js -h`查看帮助文档
+- 更详细的帮助文档可以查看这里[docs/ffmpeg.watermark.help.md](docs/ffmpeg.watermark.help.md)
+- 如果你对ffmpeg的开发感兴趣，关于这个脚本的技术文章可以查看这里[docs/ffmpeg.watermark.md](docs/ffmpeg.watermark.md)
