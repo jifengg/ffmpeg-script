@@ -385,13 +385,15 @@ async function addWatermark(input, outputfile, args) {
     let crf = parseNumber(args.crf, 23);
     let fps = parseNumber(args.fps, null);
 
+    // 移除最后一个输出，如[v12];
+    filter_complex = filter_complex.substring(0, filter_complex.length - 1 - outputFilterName.length);
+
     let ffmpeg_args = [
         '-y', '-hide_banner',
         '-i', input,
         ...sourceinputs,
         '-filter_complex', filter_complex,
         // 输出视频的一些参数，这里只用了质量控制参数 -crf 23，可自行添加如 -c:v libx265 等
-        '-map', outputFilterName,
         ...(isvideo ? ['-shortest', '-crf', crf,] : ['-frames:v', '1']),
         ...(fps != null ? ['-r', fps] : []),
         outputfile
