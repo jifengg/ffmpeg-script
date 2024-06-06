@@ -461,7 +461,7 @@ async function addWatermark(input, outputfile, args) {
         });
     });
     let processTime = Date.now() - startTime;
-    console.log('处理完毕。耗时：', processTime / 1000, '秒');
+    console.log('处理完毕。耗时：', processTime / 1000, '秒', '保存文件：', outputfile);
 }
 
 async function start(args) {
@@ -521,7 +521,7 @@ async function start(args) {
             continue;
         }
         fs.mkdirSync(path.dirname(output), { recursive: true });
-        console.log('开始处理：', inputfile);
+        console.log('开始处理：[', i + 1, '/', filelist.length, ']', inputfile);
         await addWatermark(inputfile, output, args);
     }
     console.log('全部处理完成。即将退出脚本。');
