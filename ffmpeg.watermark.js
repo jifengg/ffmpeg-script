@@ -181,7 +181,10 @@ function showCmdHelp() {
   -scale        <string>    水印文件的缩放尺寸，值的格式同ffmpeg的scale过滤器。如“1920:1080”
 -alpha          <number>    水印的透明度，取值范围：0.0 - 1.0，默认：1.0[完全不透明]
 -[left|right|top|bottom]
-                <number>    水印的左、右、上、下边距，单位：像素。默认：right=20，top=20
+                <number>    水印的左、右、上、下边距。默认：right=20，top=20
+                            当值≤1.0时，表示整个画面的百分比，也就是说left=0.5时表示在画面水平居中
+                            当值>1.0时，表示像素值，如left=200表示距离画面左边200像素。
+                            如果你要定义1像素，请使用“1.1”
 -move           <string>    水印的移动方式，可选：dvd、random；默认不移动
   -xspeed       <number>    move=dvd时生效。表示每秒水平移动的像素。默认：400
   -yspeed       <number>    move=dvd时生效。表示每秒垂直移动的像素。默认：300
