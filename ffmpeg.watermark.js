@@ -157,16 +157,17 @@ function tryParseProgress(line) {
 }
 
 function showCmdHelp() {
-    let msg = `${process.argv.slice(0, 2).join(' ')} -i <file|folder> [-temp <folder> ...]
+    let msg = `${process.argv.slice(0, 2).join(' ')} -i <file|folder> [-o <file|folder> ...]
+-preset         <string>    本脚本除了-preset之外的所有参数，均可以通过传递preset文件来设置。
+                            如果使用./preset/abc.preset来设置，则-preset abc即可。
+                            preset文件的编写请参考github（https://github.com/jifengg/ffmpeg-script）。                            
 -i              <string>    [必须]要处理的文件或目录
 -y                          是否覆盖已经存在的pbf文件，默认：false
--size           <number>    缩略图高度，默认：72
--score          <number>    0.0到1.0之间的值，表示视频帧可能为新场景的概率；建议设置在0.3到0.5之间。太小的值会出现过多场景帧，而太大的值会导致过少的场景帧。默认：0.5
--temp           <string>    缓存目录，默认为脚本所在目录下的“temp”目录
--min-interval   <number>    两个场景帧之间的最小间隔，间隔比这个值小的场景帧将被丢弃，这个值保证书签不会太密集，单位秒，默认：20.0
--max-interval   <number>    两个场景帧之间的最大间隔，如果间隔比这个值大，将在他们之间每max-interval秒取一帧，这个值保证书签不会太稀疏，单位秒，默认：60.0
 -h                          显示这个帮助信息
 -debug                      是否开启debug模式，打印更详细的日志
+-text|-file     <string>    [必须]水印的文本内容或文件路径
+-text           <string>    水印的文本内容
+-file           <string>    水印文件的路径，支持视频或图片
 `;
     console.log(msg);
 }
@@ -444,8 +445,13 @@ async function start(args) {
         showCmdHelp();
         return;
     }
+    input = path.resolve(input);
     if (!fs.existsSync(input)) {
-        console.log('输入文件（夹）不存在', input);
+        console.error('输入文件（夹）不存在', input);
+        return;
+    }
+    if (args.__groups.length == 0) {
+        console.error('未设置', groupArgsEndKey.join('、'), '参数');
         return;
     }
     let overwrite = !!args.y;
@@ -462,10 +468,23 @@ async function start(args) {
     console.log(
         `输入文件（夹）：${input}
 待处理文件数量：${filelist.length}`);
+    // 如果输入文件超过1个，则输出必须是一个目录
+    if (filelist.length > 1 && args.o) {
+        let output = path.resolve(args.o.trim());
+        if (fs.existsSync(output)) {
+            if (!fs.statSync(output).isDirectory()) {
+                console.error('同时处理多个文件时，-o 必须是一个目录', output);
+                return;
+            }
+        } else {
+            fs.mkdirSync(output, { recursive: true });
+        }
+    }
     // 遍历文件列表
     for (let i = 0; i < filelist.length; i++) {
         let inputfile = filelist[i];
         let output = args.o || path.dirname(inputfile);
+        output = path.resolve(output);
         if (fs.existsSync(output) && fs.statSync(output).isDirectory()) {
             output = path.join(output, path.basename(inputfile, path.extname(inputfile)) + '_watermark' + path.extname(inputfile));
         }
@@ -474,6 +493,7 @@ async function start(args) {
             continue;
         }
         fs.mkdirSync(path.dirname(output), { recursive: true });
+        console.log('开始处理：', inputfile);
         await addWatermark(inputfile, output, args);
     }
     console.log('全部处理完成。即将退出脚本。');
