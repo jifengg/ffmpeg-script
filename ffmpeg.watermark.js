@@ -165,9 +165,34 @@ function showCmdHelp() {
 -y                          是否覆盖已经存在的pbf文件，默认：false
 -h                          显示这个帮助信息
 -debug                      是否开启debug模式，打印更详细的日志
--text|-file     <string>    [必须]水印的文本内容或文件路径
+-[text|file]    <string>    [必须]水印的文本内容或文件路径，必须至少传一组。
+                            与ffmpeg参数传递规则类似，水印有很多可定义的参数，且支持传多个水印。
+                            因此，-text/file之前的参数是用来设置这一组水印信息的，之后的参数是下一组水印的。
+                            如：-fontsize 30 -text 此水印字号为30 -fontsize 40 -text 此水印字号为40
 -text           <string>    水印的文本内容
+  -fontsize     <number>    文字的字号，默认：20
+  -fontcolor    <string>    文字颜色，值的格式同ffmpeg的color，默认：white
+  -fontborderwidth
+                <number>    文字边框大小，单位像素，默认：0
+  -fontbordercolor
+                <string>    文字边框颜色，值的格式同ffmpeg的color，默认：black
+  -fontfile     <string>    文字字体文件路径，非windows下使用时必传，默认：c:/Windows/Fonts/msyh.ttc（微软雅黑）
 -file           <string>    水印文件的路径，支持视频或图片
+  -scale        <string>    水印文件的缩放尺寸，值的格式同ffmpeg的scale过滤器。如“1920:1080”
+-alpha          <number>    水印的透明度，取值范围：0.0 - 1.0，默认：1.0[完全不透明]
+-[left|right|top|bottom]
+                <number>    水印的左、右、上、下边距，单位：像素。默认：right=20，top=20
+-move           <string>    水印的移动方式，可选：dvd、random；默认不移动
+  -xspeed       <number>    move=dvd时生效。表示每秒水平移动的像素。默认：400
+  -yspeed       <number>    move=dvd时生效。表示每秒垂直移动的像素。默认：300
+  -xstart       <number>    move=dvd时生效。表示初始水平位置。默认：0
+  -ystart       <number>    move=dvd时生效。表示初始垂直位置。默认：0
+  -interval     <number>    move=random时生效。表示多少秒变换一个位置。默认：10
+  -seed         <number>    move=random时生效。表示随机数种子。不传则随机生成
+-repeat                     是否用水印重复填充整个画面，默认：false
+  -boxw         <number>    启用填充时，每个水印的宽度，如果水印是-file，则不能小于-scale的宽度，默认：200
+  -boxh         <number>    启用填充时，每个水印的高度，如果水印是-file，则不能小于-scale的高度，默认：100
+  -rotate       <number>    启用填充时，每个水印的旋转角度，注意是角度而不是弧度，默认：0
 `;
     console.log(msg);
 }
