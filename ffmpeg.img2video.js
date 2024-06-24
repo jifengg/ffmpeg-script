@@ -232,6 +232,13 @@ function tryParseProgress(line) {
     }
 }
 
+let Display = {
+    Contain: 'contain',
+    Original: 'original',
+    Cover: 'cover',
+    Fill: 'fill'
+}
+
 function showCmdHelp() {
     let msg = `${process.argv.slice(0, 2).join(' ')} -i <folder> [-o <file|folder> ...]
 -preset     <string>    本脚本除了-preset之外的所有参数，均可以通过传递preset文件来设置。
@@ -239,6 +246,11 @@ function showCmdHelp() {
                         preset文件的编写请参考github（https://github.com/jifengg/ffmpeg-script）。                            
 -i          <string>    [必须]要处理的图片或音频文件所在的目录
 -o          <string>    视频文件的保存路径，默认为输入目录/output.mp4
+ -display   <string>    图片的显示方式，默认为contain。可选值为：
+                        original：原图；
+                        contain：等比例缩放至显示全图，可能有黑边；
+                        cover：等比例缩放至能覆盖整个画面，可能有裁剪。
+                        fill:拉伸变形至填充整个画面
  -fps       <number>    输出视频的帧率，默认：25
  -crf       <number>    ffmpeg控制输出视频质量的参数，越小画面质量越好，视频文件也会越大，建议18~30之间。默认：23
  -c:v       <string>    输出视频的编码器，默认：h264
@@ -260,7 +272,7 @@ function showCmdHelp() {
  * @param {{imgs:[string],audio_file:string,subtitle_file:string,output_file:string, width:number, height:number,showDuration:number,tranDuration:number,repeat:boolean,fps:number,crf:number}} param0 
  */
 async function run({ imgs, audio_file, subtitle_file, output_file,
-    width, height, showDuration, tranDuration, repeat,
+    width, height, showDuration, tranDuration, repeat, display,
     fps, crf, video_codec, audio_codec,
 }) {
     let w = Math.floor((width || 1920) / 4) * 4;
@@ -316,7 +328,24 @@ async function run({ imgs, audio_file, subtitle_file, output_file,
         // force_original_aspect_ratio=decrease,increase
         // decrease: 保持宽高比，缩小图片，搭配pad做居中和黑边
         // increase: 保持宽高比，放大图片，搭配crop=1920:1080做裁剪
-        filters_lain += `[${i + input_image_start_index}]setsar=1/1,scale=${w}:${h}:force_original_aspect_ratio=decrease:force_divisible_by=4,pad=w=${w}:h=${h}:x=(ow-iw)/2:y=(oh-ih)/2:color=black,fps=${fps},trim=duration=${loopDuration}[v${i}_${lain_index}];`;
+        let display_filter = '';
+        switch (display) {
+            case Display.Cover:
+                display_filter = `scale=${w}:${h}:force_original_aspect_ratio=increase:force_divisible_by=4,crop=w=${w}:h=${h}`;
+                break;
+            case Display.Fill:
+                display_filter = `scale=${w}:${h}`;
+                break;
+            case Display.Original:
+                // 如果图片尺寸太大，则先裁剪。裁剪后放在视频画面大小的画板上居中
+                display_filter = `crop=w='if(gt(iw,${w}),${w},iw)':h='if(gt(ih,${h}),${h},ih)',pad=w=${w}:h=${h}:x=(ow-iw)/2:y=(oh-ih)/2:color=black`;
+                break;
+            case Display.Contain:
+            default:
+                display_filter = `scale=${w}:${h}:force_original_aspect_ratio=decrease:force_divisible_by=4,pad=w=${w}:h=${h}:x=(ow-iw)/2:y=(oh-ih)/2:color=black`;
+                break;
+        }
+        filters_lain += `[${i + input_image_start_index}]setsar=1/1,${display_filter},fps=${fps},trim=duration=${loopDuration}[v${i}_${lain_index}];`;
     }
     let last_output_label = `v0_${lain_index}`;
     for (let i = 1; i < imgs.length; i++) {
@@ -464,7 +493,7 @@ const SUBTITLE = 'subtitle';
  * @type {{image:[string],audio:[string],subtitle:[string]}}
  */
 const FileExt = {
-    'image': 'jpg jpeg png bmp gif webp'.split(' '),
+    'image': 'jpg jpeg png bmp webp'.split(' '),
     'audio': 'mp3 aac wav flac wma ape'.split(' '),
     'subtitle': 'lrc srt ass'.split(' '),
 }
@@ -511,6 +540,11 @@ async function start(args) {
         console.log(`目录下无图片文件【${FileExt.image}】。`);
         return false;
     }
+    let display = args.display || Display.Contain;
+    if (Object.values(Display)[display] == null) {
+        console.log('display参数值【', display, '】错误，将使用默认值“contain”');
+        display = Display.Contain;
+    }
     return await run({
         output_file, imgs, audio_file, subtitle_file,
         width: parseNumber(args.width, 1920),
@@ -519,6 +553,7 @@ async function start(args) {
         crf: parseNumber(args.crf, 23),
         video_codec: args['c:v'] || 'h264',
         audio_codec: args['c:a'] || 'aac',
+        display: display,
         repeat: !!args.repeat,
         tranDuration: parseNumber(args.td, 4),
         showDuration: parseNumber(args.sd, 7),
