@@ -541,7 +541,7 @@ async function start(args) {
         return false;
     }
     let display = args.display || Display.Contain;
-    if (Object.values(Display)[display] == null) {
+    if (Object.values(Display).includes(display) === false) {
         console.log('display参数值【', display, '】错误，将使用默认值“contain”');
         display = Display.Contain;
     }
