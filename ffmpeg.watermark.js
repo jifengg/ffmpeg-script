@@ -162,7 +162,7 @@ function showCmdHelp() {
                             如果使用./preset/abc.preset来设置，则-preset abc即可。
                             preset文件的编写请参考github（https://github.com/jifengg/ffmpeg-script）。                            
 -i              <string>    [必须]要处理的文件或目录
--y                          是否覆盖已经存在的pbf文件，默认：false
+-y                          是否覆盖已经存在的输出文件，默认：false
 -h                          显示这个帮助信息
 -debug                      是否开启debug模式，打印更详细的日志
 -[text|file]    <string>    [必须]水印的文本内容或文件路径，必须至少传一组。
