@@ -240,7 +240,7 @@ let Display = {
 }
 
 function showCmdHelp() {
-    let msg = `${process.argv.slice(0, 2).join(' ')} -i <folder> [-o <file|folder> ...]
+    let msg = `${process.argv.slice(0, 2).join(' ')} -i <folder> [-o <file> ...]
 -preset     <string>    本脚本除了-preset之外的所有参数，均可以通过传递preset文件来设置。
                         如果使用./preset/abc.preset来设置，则-preset abc即可。
                         preset文件的编写请参考github（https://github.com/jifengg/ffmpeg-script）。                            
