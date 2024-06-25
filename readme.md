@@ -11,6 +11,8 @@
   - [命令行示例](#命令行示例-2)
 - [为图片或视频添加自定义的水印，具有动态水印等多种高级功能。](#为图片或视频添加自定义的水印具有动态水印等多种高级功能)
   - [命令行示例](#命令行示例-3)
+- [将多张图片转换成类似幻灯片的视频，支持多种转场效果](#将多张图片转换成类似幻灯片的视频支持多种转场效果)
+  - [命令行示例](#命令行示例-4)
 
 ## 运行环境
 
@@ -97,3 +99,21 @@ node ffmpeg.watermark.js -i "图片文件夹路径"
 - 更多参数可执行`node ffmpeg.watermark.js -h`查看帮助文档
 - 更详细的帮助文档可以查看这里[docs/ffmpeg.watermark.help.md](docs/ffmpeg.watermark.help.md)
 - 如果你对ffmpeg的开发感兴趣，关于这个脚本的技术文章可以查看这里[docs/ffmpeg.watermark.md](docs/ffmpeg.watermark.md)
+
+
+## 将多张图片转换成类似幻灯片的视频，支持多种转场效果
+
+<details>
+<summary>效果预览</summary>
+<video src="https://github.com/jifengg/ffmpeg-script/assets/17020523/fb0c9182-9161-4692-8884-a5faa98a3abd" controls>你的浏览器不支持播放视频</video>
+</details>
+
+### 命令行示例
+
+```bash
+node ffmpeg.img2video.js -i "图片文件夹路径"
+```
+
+- 将一个目录里的图片文件按顺序生成幻灯片视频，如果目录下有音频和字幕，也将第一个音频和字幕添加到视频里
+- 更多参数可执行`node ffmpeg.img2video.js -h`查看帮助文档
+- 如果你对ffmpeg的开发感兴趣，关于这个脚本的技术文章可以查看这里[docs/ffmpeg.img2video.md](docs/ffmpeg.img2video.md)
