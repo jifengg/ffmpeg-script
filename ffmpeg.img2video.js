@@ -244,7 +244,10 @@ function showCmdHelp() {
 -preset     <string>    本脚本除了-preset之外的所有参数，均可以通过传递preset文件来设置。
                         如果使用./preset/abc.preset来设置，则-preset abc即可。
                         preset文件的编写请参考github（https://github.com/jifengg/ffmpeg-script）。                            
--i          <string>    [必须]要处理的图片或音频文件所在的目录
+-i          <string>    [必须]要处理的图片/音频/字幕文件所在的目录，扫描时不包含子目录。
+                        支持的图片：jpg jpeg png bmp webp
+                        支持的音频：mp3 aac wav flac wma ape
+                        支持的字幕：lrc srt ass
 -o          <string>    视频文件的保存路径，默认为输入目录/output.mp4
  -display   <string>    图片的显示方式，默认为contain。可选值为：
                         original：原图；
