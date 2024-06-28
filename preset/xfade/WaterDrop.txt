@@ -1,0 +1,11 @@
+# 水滴效果，其中，振幅=10，速度=30
+# 修改参数的效果可以直接看这个在线用例
+# https://gl-transitions.com/editor/WaterDrop?amplitude=10&speed=30
+if(gt(hypot(X/W-0.5,Y/H-0.5),(1-P)),
+A*P+B*(1-P)
+,
+if(eq(PLANE,0),(1-P)*b0(X,Y)+P*a0(X+(X-W/2)*sin(hypot(X/W-0.5,Y/H-0.5)*10-(1-P)*30),Y+(Y-H/2)*sin(hypot(X/W-0.5,Y/H-0.5)*10-(1-P)*30)),0)+
+if(eq(PLANE,1),(1-P)*b1(X,Y)+P*a1(X+(X-W/2)*sin(hypot(X/W-0.5,Y/H-0.5)*10-(1-P)*30),Y+(Y-H/2)*sin(hypot(X/W-0.5,Y/H-0.5)*10-(1-P)*30)),0)+
+if(eq(PLANE,2),(1-P)*b2(X,Y)+P*a2(X+(X-W/2)*sin(hypot(X/W-0.5,Y/H-0.5)*10-(1-P)*30),Y+(Y-H/2)*sin(hypot(X/W-0.5,Y/H-0.5)*10-(1-P)*30)),0)+
+if(eq(PLANE,3),(1-P)*b3(X,Y)+P*a3(X+(X-W/2)*sin(hypot(X/W-0.5,Y/H-0.5)*10-(1-P)*30),Y+(Y-H/2)*sin(hypot(X/W-0.5,Y/H-0.5)*10-(1-P)*30)),0)
+)

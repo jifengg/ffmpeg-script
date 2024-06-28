@@ -2,7 +2,10 @@ const child_process = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-let transitions = [
+/**
+ * @type {[string|{name:string,expr:string}]}
+ */
+let builtinTransitions = [
     // 'custom',
     'fade',
     'wipeleft',
@@ -47,7 +50,7 @@ let transitions = [
     'wipebr',
     'squeezeh',
     'squeezev',
-    // 'zoomin',
+    // 'zoomin',//效果不好，不用
     'fadefast',
     'fadeslow',
     'hlwind',
@@ -63,10 +66,12 @@ let transitions = [
     'revealup',
     'revealdown',
 ];
+let transitions = builtinTransitions;
 
+//-transitions fade,wipeleft,wiperight,wipeup,wipedown,slideleft,slideright,slideup,slidedown,circlecrop,rectcrop,distance,fadeblack,fadewhite,radial,smoothleft,smoothright,smoothup,smoothdown,circleopen,circleclose,vertopen,vertclose,horzopen,horzclose,dissolve,pixelize,diagtl,diagtr,diagbl,diagbr,hlslice,hrslice,vuslice,vdslice,hblur,fadegrays,wipetl,wipetr,wipebl,wipebr,squeezeh,squeezev,fadefast,fadeslow,hlwind,hrwind,vuwind,vdwind,coverleft,coverright,coverup,coverdown,revealleft,revealright,revealup,revealdown
 
 let boolArgsKey = [
-    'y', 'h', 'v', 'debug', 'repeat',
+    'y', 'h', 'v', 'debug', 'repeat', 'disable_buildin_transitions'
 ]
 
 let groupArgsKey = [];
@@ -241,31 +246,36 @@ let Display = {
 
 function showCmdHelp() {
     let msg = `${process.argv.slice(0, 2).join(' ')} -i <folder> [-o <file> ...]
--preset     <string>    本脚本除了-preset之外的所有参数，均可以通过传递preset文件来设置。
-                        如果使用./preset/abc.preset来设置，则-preset abc即可。
-                        preset文件的编写请参考github（https://github.com/jifengg/ffmpeg-script）。                            
--i          <string>    [必须]要处理的图片/音频/字幕文件所在的目录，扫描时不包含子目录。
-                        支持的图片：jpg jpeg png bmp webp
-                        支持的音频：mp3 aac wav flac wma ape
-                        支持的字幕：lrc srt ass
--o          <string>    视频文件的保存路径，默认为输入目录/output.mp4
- -display   <string>    图片的显示方式，默认为contain。可选值为：
-                        original：原图；
-                        contain：等比例缩放至显示全图，可能有黑边；
-                        cover：等比例缩放至能覆盖整个画面，可能有裁剪。
-                        fill:拉伸变形至填充整个画面
- -fps       <number>    输出视频的帧率，默认：25
- -crf       <number>    ffmpeg控制输出视频质量的参数，越小画面质量越好，视频文件也会越大，建议18~30之间。默认：23
- -c:v       <string>    输出视频的编码器，默认：h264
- -c:a       <string>    输出视频的音频编码器，默认：aac
- -width     <number>    输出视频的宽度，默认：1920
- -height    <number>    输出视频的高度，默认：1080
- -td        <number>    图片切换动画时长，默认为4秒
- -sd        <number>    图片独立显示时长，默认为7秒
- -repeat                图片数量太少导致视频时长比音频时长短的时候，循环图片以达到音频的时长。默认：不循环
--y                      覆盖已经存在的输出文件，默认：false
--h                      显示这个帮助信息
--debug                  开启debug模式，打印更详细的日志
+-preset         <string>    本脚本除了-preset之外的所有参数，均可以通过传递preset文件来设置。
+                            如果使用./preset/abc.preset来设置，则-preset abc即可。
+                            preset文件的编写请参考github（https://github.com/jifengg/ffmpeg-script）。                            
+-i              <string>    [必须]要处理的图片/音频/字幕文件所在的目录，扫描时不包含子目录。
+                            支持的图片：jpg jpeg png bmp webp
+                            支持的音频：mp3 aac wav flac wma ape
+                            支持的字幕：lrc srt ass
+-o              <string>    视频文件的保存路径，默认为输入目录/output.mp4
+ -display       <string>    图片的显示方式，默认为contain。可选值为：
+                            original：原图；
+                            contain：等比例缩放至显示全图，可能有黑边；
+                            cover：等比例缩放至能覆盖整个画面，可能有裁剪。
+                            fill:拉伸变形至填充整个画面
+ -fps           <number>    输出视频的帧率，默认：25
+ -crf           <number>    ffmpeg控制输出视频质量的参数，越小画面质量越好，视频文件也会越大，建议18~30之间。默认：23
+ -c:v           <string>    输出视频的编码器，默认：h264
+ -c:a           <string>    输出视频的音频编码器，默认：aac
+ -width         <number>    输出视频的宽度，默认：1920
+ -height        <number>    输出视频的高度，默认：1080
+ -td            <number>    图片切换动画时长，默认为4秒
+ -sd            <number>    图片独立显示时长，默认为7秒
+ -repeat                    图片数量太少导致视频时长比音频时长短的时候，循环图片以达到音频的时长。默认：不循环
+-transitions    <string>    要使用的转场动画集，使用逗号分隔，如 fade,wipeleft,wiperight,wipeup,mytran1
+                            其中，支持自定义的转场动画，如 mytran1 表示 ./preset/xfade/mytran1.txt
+                            自定义转场动画的编写请参考github（https://github.com/jifengg/ffmpeg-script）。
+-disable_buildin_transitions
+                <boolean>   禁用脚本中内置的ffmpeg的转场动画，只使用-transitions定义的，默认：false
+-y                          覆盖已经存在的输出文件，默认：false
+-h                          显示这个帮助信息
+-debug                      开启debug模式，打印更详细的日志
 `;
     console.log(msg);
 }
@@ -348,15 +358,19 @@ async function run({ imgs, audio_file, subtitle_file, output_file,
                 display_filter = `scale=${w}:${h}:force_original_aspect_ratio=decrease:force_divisible_by=4,pad=w=${w}:h=${h}:x=(ow-iw)/2:y=(oh-ih)/2:color=black`;
                 break;
         }
-        filters_lain += `[${i + input_image_start_index}]setsar=1/1,${display_filter},fps=${fps},trim=duration=${loopDuration}[v${i}_${lain_index}];`;
+        // 最后一张图片不需要消失的转场，因此时长需要减去一个动画时长
+        filters_lain += `[${i + input_image_start_index}]setsar=1/1,${display_filter},fps=${fps},trim=duration=${loopDuration - (i == imgs.length - 1 ? tranDuration : 0)}[v${i}_${lain_index}];`;
     }
     let last_output_label = `v0_${lain_index}`;
     for (let i = 1; i < imgs.length; i++) {
         let transition = getTransition();
+        let isCustomTransition = typeof (transition) == 'object';
         let duration = tranDuration;
         let offset = i * (showDuration + tranDuration) - tranDuration;
         let output_label = `ov${i}_${lain_index}`;
-        filters_lain += `[${last_output_label}][v${i}_${lain_index}]xfade=transition=${transition}:duration=${duration}:offset=${offset}[${output_label}];`;
+        filters_lain += `[${last_output_label}][v${i}_${lain_index}]xfade=transition=`
+            + (isCustomTransition ? `custom:expr='${transition.expr}'` : transition)
+            + `:duration=${duration}:offset=${offset}[${output_label}];`;
         last_output_label = output_label;
     }
     if (subtitle_file) {
@@ -513,8 +527,53 @@ function isSubtitle(name) {
     return isFileType(SUBTITLE, name);
 }
 
+function parseTransitions(args) {
+    if (args.transitions != null) {
+        let trans = Array.from(new Set(args.transitions.split(',').map(s => s.trim()).filter(i => i.length > 0)));
+        let disable_buildin_transitions = !!args.disable_buildin_transitions;
+        let new_trans = [];
+        // 读取文件信息，文件存在./preset/xfade/ 下
+        for (let trans_name of trans) {
+            if (builtinTransitions.includes(trans_name)) {
+                new_trans.push(trans_name);
+                continue;
+            }
+            let trans_file = path.join(__dirname, 'preset', 'xfade', trans_name + '.txt');
+            if (!fs.existsSync(trans_file)) {
+                console.warn(`转场文件【${trans_file}】不存在。`);
+                continue;
+            } else {
+                let lines = fs.readFileSync(trans_file).toString().replace(/\r/g, '').split('\n');
+                // 移除lines中的空白行，并去除每行前后的空格。#开头的为注释行，也忽略
+                lines = lines.filter(line => line.trim().length > 0 && !line.startsWith('#') && !line.startsWith('//')).map(line => line.trim());
+                new_trans.push({
+                    name: trans_name,
+                    expr: lines.join(''),
+                });
+            }
+        }
+
+        if (new_trans.length == 0) {
+            if (disable_buildin_transitions) {
+                throw '禁用内置效果，但未指定转场效果。必须至少有一个转场效果';
+            }
+        } else {
+            if (disable_buildin_transitions) {
+                transitions = new_trans;
+            } else {
+                transitions = Array.from(new Set([...transitions, ...new_trans]));
+            }
+        }
+    }
+}
+
 let debug = false;
 
+/**
+ * 
+ * @param {{[x:string]:string}} args 
+ * @returns 
+ */
 async function start(args) {
     if (args == null) {
         args = parseArgs(process.argv.slice(2));
@@ -541,13 +600,14 @@ async function start(args) {
     let { imgs, audio_file, subtitle_file } = getMediaFiles(input);
     if (imgs.length == 0) {
         console.log(`目录下无图片文件【${FileExt.image}】。`);
-        return false;
+        return;
     }
     let display = args.display || Display.Contain;
     if (Object.values(Display).includes(display) === false) {
         console.log('display参数值【', display, '】错误，将使用默认值“contain”');
         display = Display.Contain;
     }
+    parseTransitions(args);
     return await run({
         output_file, imgs, audio_file, subtitle_file,
         width: parseNumber(args.width, 1920),

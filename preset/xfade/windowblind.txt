@@ -1,0 +1,5 @@
+# 百叶窗效果，通过windowslice.txt修改而来
+# https://gl-transitions.com/editor/windowslice?count=10&smoothness=0.6
+if(
+lt(mod(Y*10,H)/H,1-((1-P)-0.6+floor(Y*10/H)*(0.6/10))/(1-0.6))
+,A,B)
