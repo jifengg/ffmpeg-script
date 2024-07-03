@@ -117,3 +117,5 @@ node ffmpeg.img2video.js -i "图片文件夹路径"
 - 将一个目录里的图片文件按顺序生成幻灯片视频，如果目录下有音频和字幕，也将第一个音频和字幕添加到视频里
 - 更多参数可执行`node ffmpeg.img2video.js -h`查看帮助文档
 - 如果你对ffmpeg的开发感兴趣，关于这个脚本的技术文章可以查看这里[docs/ffmpeg.img2video.md](docs/ffmpeg.img2video.md)
+- 增加了对自定义转场效果的支持，并在`preset\xfade`里预置了一些效果
+- 关于自定义转场效果要怎么写，可以查看这个文档[docs/ffmpeg.xfade.md](docs/ffmpeg.xfade.md)
