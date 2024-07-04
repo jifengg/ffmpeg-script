@@ -1,0 +1,16 @@
+# https://gl-transitions.com/editor/Dreamy
+# 画面变得像波浪一样上下起伏
+# H/20：控制上下起伏的幅度，这个值表示高度的1/20。可以换成常量，也可以改成其它比例
+# 7*PI：控制起伏的宽度，7表示水平上有7/2=3.5个波峰
+P*(
+ if(eq(PLANE,0),a0(X,Y+H/20*sin((X/W+P)*7*PI)*(1-P)),0)+
+ if(eq(PLANE,1),a1(X,Y+H/20*sin((X/W+P)*7*PI)*(1-P)),0)+
+ if(eq(PLANE,2),a2(X,Y+H/20*sin((X/W+P)*7*PI)*(1-P)),0)+
+ if(eq(PLANE,3),a3(X,Y+H/20*sin((X/W+P)*7*PI)*(1-P)),0)
+)
++(1-P)*(
+ if(eq(PLANE,0),b0(X,Y+H/20*sin((X/W+P)*7*PI)*P),0)+
+ if(eq(PLANE,1),b1(X,Y+H/20*sin((X/W+P)*7*PI)*P),0)+
+ if(eq(PLANE,2),b2(X,Y+H/20*sin((X/W+P)*7*PI)*P),0)+
+ if(eq(PLANE,3),b3(X,Y+H/20*sin((X/W+P)*7*PI)*P),0)
+)
